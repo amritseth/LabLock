@@ -30,8 +30,11 @@ describe("healthResponseSchema", () => {
       checks: { database: { status: "ok", latencyMs: 12 } },
       connectionString: "postgres://secret", // must never appear
     });
-    expect(parsed.success).toBe(true);
-    expect((parsed.data as Record<string, unknown>).connectionString).toBeUndefined();
+    if (parsed.success) {
+      expect("connectionString" in parsed.data).toBe(false);
+    } else {
+      expect.unreachable("schema should accept the sanitized shape");
+    }
   });
 });
 

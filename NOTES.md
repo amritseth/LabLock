@@ -85,5 +85,5 @@ it blocks the core action, retention, or operations.
 - [ ] PostHog instrumentation (Slice D): DSN absent, event taxonomy documented
       in METRICS.md.
 - [ ] Operator assignment procedure: `update profiles set role='operator'
-    where id = <auth user id>;` — document in RUNBOOK before pilot.
+where id = <auth user id>;` — document in RUNBOOK before pilot.
 - [ ] Broker Restore-drill for managed backups after Supabase Pro exists (§18).

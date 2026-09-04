@@ -124,7 +124,7 @@ Operational procedures for LabLock. Section numbering mirrors the handbook §18.
 - [ ] Privacy notice names the operator and deletion contact.
 - [ ] Custom domain with HTTPS verified.
 - [ ] Operator role assigned: `update public.profiles set role='operator'
-    where id = '<auth user id>';`
+where id = '<auth user id>';`
 
 ## Release bookkeeping
 

@@ -135,7 +135,7 @@ describe("invariant: at most one confirmed booking per (resource_id, starts_at)"
     expect(first.status).toBe("confirmed");
 
     // Student B attempts to book while A's cancellation is in flight.
-    const [cancel, book] = await Promise.all([
+    const [cancel] = await Promise.all([
       cancelBooking(STUDENT_A, String(first.bookingId), ctx()),
       bookSlot(STUDENT_B, { startsAt: startsAt.toISOString() }, ctx()),
     ]);
