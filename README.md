@@ -14,7 +14,7 @@ numbers.
 |               |                                                                                                                                                                  |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Stack         | Next.js 16.2.10 + TypeScript 5.9 · Supabase (Auth + Postgres 17 + Realtime) · Vercel (Mumbai `bom1`) · Resend · Sentry · PostHog · Better Stack · GitHub Actions |
-| Runtime pins  | Node **20.20.x**, pnpm **10.34.5** (exact, `packageManager` field)                                                                                               |
+| Runtime pins  | Node **22.x** (LTS), pnpm **10.34.5** (exact, `packageManager` field)                                                                                            |
 | Cost          | ~$25/mo (Supabase Pro) + domain at 100 users; Vercel Hobby + free observability tiers                                                                            |
 | Status badges | `[✓]` implemented + locally verified · `[~]` designed, not implemented · `[!]` not yet verified/deployed                                                         |
 

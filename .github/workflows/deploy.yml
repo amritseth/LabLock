@@ -49,7 +49,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 20.20.x
+          node-version: 22.x
           cache: pnpm
 
       - name: Install dependencies (frozen)
@@ -71,6 +71,17 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
+      - name: Verify production environment is configured (fail fast, not smoke)
+        run: |
+          MISSING=""
+          for v in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY SUPABASE_DB_URL; do
+            grep -q "^$v=" .env.production.local && grep -q "^$v=..*$" .env.production.local || MISSING="$MISSING $v"
+          done
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing Vercel production env vars:$MISSING — add them in Vercel Project Settings → Environment Variables (Production) and redeploy."
+            exit 1
+          fi
+
       - name: Build (production, immutable)
         run: npx --yes vercel@59.11.2 build --prod --token="$VERCEL_TOKEN"
         env:
@@ -79,7 +90,11 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy (prebuilt, production)
-        run: npx --yes vercel@59.11.2 deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        id: deploy
+        run: |
+          DEPLOY_URL=$(npx --yes vercel@59.11.2 deploy --prebuilt --prod --token="$VERCEL_TOKEN" 2>&1 | grep -Eo 'https://[^ ]+' | tail -1)
+          echo "deploy_url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
+          echo "Deployed to: $DEPLOY_URL"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -87,9 +102,8 @@ jobs:
 
       # Smoke test: 6 retries × 5s delay, fail on non-200. Fail-closed health
       # means this 503s loudly if the DB probe cannot run (handbook §14).
-      - name: Smoke test /api/health
+      - name: "Smoke test /api/health — fail-closed: 503 is a real error"
         run: |
-          curl --fail --retry 6 --retry-all-errors --retry-delay 5 \
-            "https://${{ secrets.VERCEL_PROD_DOMAIN }}/api/health"
-        env:
-          VERCEL_PROD_DOMAIN: ${{ secrets.VERCEL_PROD_DOMAIN }}
+          URL="${{ steps.deploy.outputs.deploy_url }}"
+          [ -z "$URL" ] && URL="https://${{ secrets.VERCEL_PROD_DOMAIN }}"
+          curl --fail --retry 6 --retry-all-errors --retry-delay 5 "$URL/api/health"

@@ -81,6 +81,20 @@ dashboard.
 **Promotion rule:** an item enters active scope only after user evidence shows
 it blocks the core action, retention, or operations.
 
+## Vercel deployment compatibility (2026-09)
+
+- **Vercel accepts only `major.x` engine ranges** (`22.x`); a three-segment
+  pin like `20.20.x` fails with "Found invalid Node.js Version".
+- **Node 20 is a hard deadline**: EOL 2026-04-30; Vercel disables Node 20 for
+  Builds and Functions on 2026-10-01. Any new deployment/function fails after
+  that — existing functions keep running, which makes this easy to miss.
+- **Sentry 9 does not support Next 16** (peer range stops at `^15.0.0-rc.0`).
+  If a `pnpm` install or build ever complains about peer dependencies, go to
+  the 10.x line, which lists `^16.0.0-0`.
+- The workflow `supabase db push` step requires the `SUPABASE_DB_URL` GitHub
+  secret — the preflight step now names exactly which Vercel env vars are
+  missing before the build runs.
+
 ## Open questions / TODOs
 
 - [ ] Connect provider accounts; first deploy (workflows are written and

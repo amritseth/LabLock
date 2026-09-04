@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "regions": ["bom1"],
+  "functions": {
+    "app/api/health/route.ts": { "maxDuration": 20, "memory": 1024 },
+    "app/api/availability/route.ts": { "maxDuration": 20, "memory": 1024 },
+    "app/api/bookings/route.ts": { "maxDuration": 20, "memory": 1024 },
+    "app/api/bookings/[id]/route.ts": { "maxDuration": 20, "memory": 1024 },
+    "app/api/slot-blocks/route.ts": { "maxDuration": 20, "memory": 1024 },
+    "app/api/slot-blocks/[id]/route.ts": { "maxDuration": 20, "memory": 1024 },
+    "app/api/audit/route.ts": { "maxDuration": 20, "memory": 1024 },
+    "app/api/auth/callback/route.ts": { "maxDuration": 20, "memory": 1024 },
+    "app/api/auth/signout/route.ts": { "maxDuration": 20, "memory": 1024 }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    }
+  ]
+}

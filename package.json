@@ -4,7 +4,7 @@
   "private": true,
   "description": "One trusted schedule for the shared project lab. Book a free one-hour slot and the database confirms it is yours.",
   "engines": {
-    "node": "20.20.x"
+    "node": "22.x"
   },
   "packageManager": "pnpm@10.34.5",
   "scripts": {
@@ -28,7 +28,7 @@
     "e2e:all": "playwright test"
   },
   "dependencies": {
-    "@sentry/nextjs": "9.47.1",
+    "@sentry/nextjs": "10.73.0",
     "@supabase/ssr": "0.12.5",
     "@supabase/supabase-js": "2.115.0",
     "next": "16.2.10",
@@ -43,7 +43,7 @@
   "devDependencies": {
     "@playwright/test": "1.62.1",
     "@tailwindcss/postcss": "4.1.11",
-    "@types/node": "20.19.43",
+    "@types/node": "22.20.1",
     "@types/pg": "8.23.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.7",
