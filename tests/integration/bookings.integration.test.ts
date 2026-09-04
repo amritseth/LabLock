@@ -21,7 +21,9 @@ import { isAlignedToKolkataHour, kolkataHourToUtc, KOLKATA_TZ } from "@/lib/slot
  */
 
 const DATABASE_URL =
-  process.env.TEST_DATABASE_URL ?? process.env.SUPABASE_DB_URL ?? "postgres://postgres:postgres@127.0.0.1:5432/lablock_test";
+  process.env.TEST_DATABASE_URL ??
+  process.env.SUPABASE_DB_URL ??
+  "postgres://postgres:postgres@127.0.0.1:5432/lablock_test";
 
 const pool = new Pool({ connectionString: DATABASE_URL, max: 20 });
 
@@ -57,7 +59,10 @@ function conflictCode(outcome: Outcome): string {
 let requestSeq = 0;
 function ctx(key?: string) {
   requestSeq += 1;
-  return { idempotencyKey: key ?? `it-${requestSeq}-${Math.random().toString(36).slice(2)}`, requestId: `req-${requestSeq}` };
+  return {
+    idempotencyKey: key ?? `it-${requestSeq}-${Math.random().toString(36).slice(2)}`,
+    requestId: `req-${requestSeq}`,
+  };
 }
 
 /** Explicitly NO idempotency key (tests the 400 contract). */
@@ -75,7 +80,9 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await pool.query(`TRUNCATE idempotency_records, availability_events, audit_events, slot_blocks, bookings, profiles CASCADE`);
+  await pool.query(
+    `TRUNCATE idempotency_records, availability_events, audit_events, slot_blocks, bookings, profiles CASCADE`,
+  );
   await pool.query(
     `INSERT INTO resources (id, slug, name, tz, slot_length_minutes, is_active)
      VALUES ($1, 'project-lab', 'Project Lab', 'Asia/Kolkata', 60, true)
@@ -83,10 +90,10 @@ beforeEach(async () => {
     [RESOURCE_ID],
   );
   for (const actor of [STUDENT_A, STUDENT_B, STUDENT_C, OPERATOR]) {
-    await pool.query(`INSERT INTO auth.users (id, email) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`, [
-      actor.userId,
-      `${actor.userId.slice(0, 8)}@pilot.local`,
-    ]);
+    await pool.query(
+      `INSERT INTO auth.users (id, email) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`,
+      [actor.userId, `${actor.userId.slice(0, 8)}@pilot.local`],
+    );
   }
 });
 
@@ -98,7 +105,9 @@ describe("invariant: at most one confirmed booking per (resource_id, starts_at)"
       role: "student" as const,
     }));
     for (const actor of actors) {
-      await pool.query(`INSERT INTO auth.users (id) VALUES ($1) ON CONFLICT DO NOTHING`, [actor.userId]);
+      await pool.query(`INSERT INTO auth.users (id) VALUES ($1) ON CONFLICT DO NOTHING`, [
+        actor.userId,
+      ]);
     }
 
     const outcomes = await Promise.all(
@@ -201,7 +210,11 @@ describe("idempotency (handbook §10 behavior table)", () => {
   });
 
   it("key not provided on a state-changing route → 400 missing_idempotency_key", async () => {
-    const outcome = await bookSlot(STUDENT_A, { startsAt: kolkataSlot(1, 13).toISOString() }, ctxMissingKey());
+    const outcome = await bookSlot(
+      STUDENT_A,
+      { startsAt: kolkataSlot(1, 13).toISOString() },
+      ctxMissingKey(),
+    );
     expect(outcome.kind).toBe("client_error");
     expect(outcome.body.code).toBe("missing_idempotency_key");
   });
@@ -210,7 +223,9 @@ describe("idempotency (handbook §10 behavior table)", () => {
 describe("slot rules (handbook §4 product rules v1)", () => {
   it("rejects a slot in the past", async () => {
     const past = kolkataHourToUtc(
-      new Intl.DateTimeFormat("en-CA", { timeZone: KOLKATA_TZ }).format(new Date(Date.now() - 86_400_000)),
+      new Intl.DateTimeFormat("en-CA", { timeZone: KOLKATA_TZ }).format(
+        new Date(Date.now() - 86_400_000),
+      ),
       10,
     );
     const outcome = await bookSlot(STUDENT_A, { startsAt: past.toISOString() }, ctx());
@@ -239,7 +254,11 @@ describe("operator blocks (handbook §8, §12)", () => {
   it("a blocked slot cannot be booked; unblocking restores it", async () => {
     const startsAt = kolkataSlot(2, 16);
     const blocked = ok(
-      await blockSlot(OPERATOR, { startsAt: startsAt.toISOString(), cancelReason: "maintenance" }, ctx()),
+      await blockSlot(
+        OPERATOR,
+        { startsAt: startsAt.toISOString(), cancelReason: "maintenance" },
+        ctx(),
+      ),
     );
     expect(blocked.status).toBe("blocked");
 
@@ -255,14 +274,22 @@ describe("operator blocks (handbook §8, §12)", () => {
   it("an existing confirmed booking blocks the operator's block", async () => {
     const startsAt = kolkataSlot(2, 17);
     await bookSlot(STUDENT_A, { startsAt: startsAt.toISOString() }, ctx());
-    const block = await blockSlot(OPERATOR, { startsAt: startsAt.toISOString(), cancelReason: "event" }, ctx());
+    const block = await blockSlot(
+      OPERATOR,
+      { startsAt: startsAt.toISOString(), cancelReason: "event" },
+      ctx(),
+    );
     expect(block.kind).toBe("conflict");
     expect(conflictCode(block)).toBe("booking_exists");
   });
 
   it("only operators may block", async () => {
     const startsAt = kolkataSlot(2, 18);
-    const outcome = await blockSlot(STUDENT_A, { startsAt: startsAt.toISOString(), cancelReason: "x" }, ctx());
+    const outcome = await blockSlot(
+      STUDENT_A,
+      { startsAt: startsAt.toISOString(), cancelReason: "x" },
+      ctx(),
+    );
     expect(outcome.kind).toBe("forbidden");
   });
 });
@@ -273,10 +300,14 @@ describe("one transaction, ten steps (handbook §9.4)", () => {
     const key = "atomic";
     await bookSlot(STUDENT_A, { startsAt: startsAt.toISOString() }, ctx(key));
 
-    const audit = await pool.query(`SELECT count(*)::int AS n FROM audit_events WHERE action = 'created'`);
+    const audit = await pool.query(
+      `SELECT count(*)::int AS n FROM audit_events WHERE action = 'created'`,
+    );
     expect(audit.rows[0].n).toBe(1);
 
-    const events = await pool.query(`SELECT count(*)::int AS n FROM availability_events WHERE new_state = 'booked'`);
+    const events = await pool.query(
+      `SELECT count(*)::int AS n FROM availability_events WHERE new_state = 'booked'`,
+    );
     expect(events.rows[0].n).toBe(1);
 
     const idem = await pool.query(

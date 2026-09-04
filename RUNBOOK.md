@@ -10,15 +10,15 @@ Operational procedures for LabLock. Section numbering mirrors the handbook §18.
 
 ## Environment reference
 
-| Variable | Where | Public? |
-| --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Vercel env (production + preview) | by design |
-| `NEXT_PUBLIC_SENTRY_DSN`, `NEXT_PUBLIC_POSTHOG_KEY` | Vercel env | by design |
-| `SUPABASE_SERVICE_ROLE_KEY` | **GitHub `production` environment + Vercel** | **never** → browser |
-| `SUPABASE_DB_URL` | **GitHub `production` environment + Vercel** | **never** → browser |
-| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | GitHub `production` environment | never |
-| `AUDIT_PEPPER` | Vercel env (server only) | never |
-| `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `VERCEL_TOKEN`, `VERCEL_PROD_DOMAIN` | GitHub `production` environment secrets | never |
+| Variable                                                                   | Where                                        | Public?             |
+| -------------------------------------------------------------------------- | -------------------------------------------- | ------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`                | Vercel env (production + preview)            | by design           |
+| `NEXT_PUBLIC_SENTRY_DSN`, `NEXT_PUBLIC_POSTHOG_KEY`                        | Vercel env                                   | by design           |
+| `SUPABASE_SERVICE_ROLE_KEY`                                                | **GitHub `production` environment + Vercel** | **never** → browser |
+| `SUPABASE_DB_URL`                                                          | **GitHub `production` environment + Vercel** | **never** → browser |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`                        | GitHub `production` environment              | never               |
+| `AUDIT_PEPPER`                                                             | Vercel env (server only)                     | never               |
+| `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `VERCEL_TOKEN`, `VERCEL_PROD_DOMAIN` | GitHub `production` environment secrets      | never               |
 
 `.env.example` contains **public-only placeholders** plus a server-only marker.
 
@@ -32,7 +32,7 @@ Operational procedures for LabLock. Section numbering mirrors the handbook §18.
 4. Deploy runs automatically (`workflow_run` gate): verify secrets →
    `supabase db push --db-url` (**migration-first**) → `vercel build --prod` →
    `vercel deploy --prebuilt --prod` → smoke `curl --fail --retry 6
-   --retry-all-errors --retry-delay 5 https://<domain>/api/health`.
+--retry-all-errors --retry-delay 5 https://<domain>/api/health`.
 5. Click the production URL: verify landing; (pilot) sign in, book a smoke
    slot, cancel it.
 6. Check Sentry for a release spike; Better Stack for health.
@@ -124,7 +124,7 @@ Operational procedures for LabLock. Section numbering mirrors the handbook §18.
 - [ ] Privacy notice names the operator and deletion contact.
 - [ ] Custom domain with HTTPS verified.
 - [ ] Operator role assigned: `update public.profiles set role='operator'
-      where id = '<auth user id>';`
+    where id = '<auth user id>';`
 
 ## Release bookkeeping
 

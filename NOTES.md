@@ -1,26 +1,26 @@
 # LabLock — Engineering notes
 
 Design decisions, rejected alternatives, subtleties, and the explicit Later
-list. Every entry documents *why*. Nothing enters active scope without user
+list. Every entry documents _why_. Nothing enters active scope without user
 evidence.
 
 ## Core decisions (and rejected alternatives)
 
-| Decision | Rejected alternative | Why |
-| --- | --- | --- |
-| Postgres **partial unique index** is the correctness wall | Redis distributed lock | Redis is a separate failure domain (flush/partition), cannot replace a database constraint. Even with a lock, you still need the index for defense in depth. Redis may throttle/cache later — never decide truth. See §9 of the handbook. |
-| Realtime messages **invalidate**, never apply | Apply payload directly | Realtime can duplicate and reorder. Applying 'slot X is booked' twice or out of order creates wrong state. Refetch is idempotent and safe to repeat. |
-| **One Next.js application** | Monorepo / microservices / separate API | 20 users cannot justify the ops cost; the booking transaction needs a single DB; one deploy, one secret surface. Reconsider past 2–3 engineers or independent scaling needs. |
-| **Managed services** (Supabase, Vercel, Sentry) | Self-host Postgres/auth/WS/email | Removes DB/auth/WS/backup ops from the critical path; $25/mo at 100 users. Reconsider if cost exceeds value or data residency demands self-hosting. |
-| **Asia/Kolkata = fixed +05:30, no DST** | IANA/TZ database lookups at runtime | IST has no DST. A fixed offset constant is deterministic, testable, and carries the invariant 'minute 0 in IST' in an explicit form. Delivery/rendering still uses `Intl` with `Asia/Kolkata` for display. |
+| Decision                                                    | Rejected alternative                        | Why                                                                                                                                                                                                                                                   |
+| ----------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Postgres **partial unique index** is the correctness wall   | Redis distributed lock                      | Redis is a separate failure domain (flush/partition), cannot replace a database constraint. Even with a lock, you still need the index for defense in depth. Redis may throttle/cache later — never decide truth. See §9 of the handbook.             |
+| Realtime messages **invalidate**, never apply               | Apply payload directly                      | Realtime can duplicate and reorder. Applying 'slot X is booked' twice or out of order creates wrong state. Refetch is idempotent and safe to repeat.                                                                                                  |
+| **One Next.js application**                                 | Monorepo / microservices / separate API     | 20 users cannot justify the ops cost; the booking transaction needs a single DB; one deploy, one secret surface. Reconsider past 2–3 engineers or independent scaling needs.                                                                          |
+| **Managed services** (Supabase, Vercel, Sentry)             | Self-host Postgres/auth/WS/email            | Removes DB/auth/WS/backup ops from the critical path; $25/mo at 100 users. Reconsider if cost exceeds value or data residency demands self-hosting.                                                                                                   |
+| **Asia/Kolkata = fixed +05:30, no DST**                     | IANA/TZ database lookups at runtime         | IST has no DST. A fixed offset constant is deterministic, testable, and carries the invariant 'minute 0 in IST' in an explicit form. Delivery/rendering still uses `Intl` with `Asia/Kolkata` for display.                                            |
 | Students see **occupancy only**; identity stays server-side | Expose booker rows to authenticated clients | Even an opaque `user_id` leaks a behavioural signal (WHEN the lab is busy for WHOM). The availability API answers with `free/booked/blocked` only; the raw bookings table has no client write policy and its read policies are own-row/operator-only. |
-| Invite-only signup (`enable_signup = false`) | Open signup | Bounded blast radius, honest metrics, trusted cohort. Operator creates accounts on the allowlist; OTP login with `shouldCreateUser: false`. |
+| Invite-only signup (`enable_signup = false`)                | Open signup                                 | Bounded blast radius, honest metrics, trusted cohort. Operator creates accounts on the allowlist; OTP login with `shouldCreateUser: false`.                                                                                                           |
 
 ## Subtleties worth remembering
 
 1. **Idempotency hash ordering.** The handbook's pseudocode writes
    `ON CONFLICT (key) DO UPDATE SET request_hash = EXCLUDED.request_hash` and
-   *then* compares — the overwrite makes the reuse comparison always pass, so
+   _then_ compares — the overwrite makes the reuse comparison always pass, so
    a key reused with a different payload would silently replay. This
    implementation keeps the **stored** hash
    (`SET request_hash = idempotency_records.request_hash`), takes the same row
@@ -51,8 +51,8 @@ evidence.
    probing (asserted by a test that proves the probe never runs).
 
 6. **Slot identity everywhere.** Slots are compared as UTC ISO instants;
-   `bookings.starts_at` is `timestamptz`. 'Aligned to the hour' means *minute 0
-   in Kolkata* — UTC minute 30 — and `slots.ts` encodes that invariant so the
+   `bookings.starts_at` is `timestamptz`. 'Aligned to the hour' means _minute 0
+   in Kolkata_ — UTC minute 30 — and `slots.ts` encodes that invariant so the
    API never invents a 10:45 IST slot.
 
 7. **`x-request-id` correlation.** Accepted only when matching
@@ -85,5 +85,5 @@ it blocks the core action, retention, or operations.
 - [ ] PostHog instrumentation (Slice D): DSN absent, event taxonomy documented
       in METRICS.md.
 - [ ] Operator assignment procedure: `update profiles set role='operator'
-      where id = <auth user id>;` — document in RUNBOOK before pilot.
+    where id = <auth user id>;` — document in RUNBOOK before pilot.
 - [ ] Broker Restore-drill for managed backups after Supabase Pro exists (§18).

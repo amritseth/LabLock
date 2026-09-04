@@ -8,6 +8,7 @@ first live release is recorded here only after it happens.
 ## [0.1.0] — 2026-07-13 · Slice A: Deployment skeleton — `[✓] locally verified · [!] not deployed`
 
 ### Added
+
 - Mobile-first landing page (`app/page.tsx`) with hero "Book the lab. Skip the
   WhatsApp chase.", clearly-labeled demo slot data, problem/evidence section,
   and an honest status table.
@@ -28,6 +29,7 @@ first live release is recorded here only after it happens.
 ## [0.2.0] — 2026-07-14 · Slice B: Auth + core booking — `[✓] implemented + locally verified`
 
 ### Added
+
 - **Migrations**: `profiles` (role enum + auth trigger + RLS), `resources`,
   `bookings` (+ **partial unique index** `bookings_one_confirmed_per_slot`),
   `slot_blocks`, `idempotency_records`, `audit_events`, `availability_events`
@@ -52,6 +54,7 @@ first live release is recorded here only after it happens.
 ## [0.3.0] — 2026-07-15 · Slice C: Real-time synchronization — `[✓] implemented + locally verified`
 
 ### Added
+
 - Supabase Realtime publication on `availability_events` (PII-free payloads;
   no user id, no email).
 - Seven-step client algorithm (`lib/use-availability-sync.ts`): snapshot →
@@ -62,6 +65,7 @@ first live release is recorded here only after it happens.
   truth, only "go look".
 
 ## Planned
+
 - [~] **Slice D** — PostHog funnel events (no PII), in-app feedback,
   onboarding tweaks.
 - [~] **Slice E** — quota policy if concentration >30%, restore drill, alert

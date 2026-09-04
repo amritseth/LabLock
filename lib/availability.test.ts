@@ -25,9 +25,15 @@ describe("buildAvailabilityView", () => {
     const view = buildAvailabilityView(source, now, 1);
     expect(view).toHaveLength(1);
     const slots = view[0]!.slots;
-    expect(slots.find((s) => s.startsAt === kolkataHourToUtc("2026-07-13", 11).toISOString())!.status).toBe("booked");
-    expect(slots.find((s) => s.startsAt === kolkataHourToUtc("2026-07-13", 14).toISOString())!.status).toBe("blocked");
-    expect(slots.find((s) => s.startsAt === kolkataHourToUtc("2026-07-13", 12).toISOString())!.status).toBe("free");
+    expect(
+      slots.find((s) => s.startsAt === kolkataHourToUtc("2026-07-13", 11).toISOString())!.status,
+    ).toBe("booked");
+    expect(
+      slots.find((s) => s.startsAt === kolkataHourToUtc("2026-07-13", 14).toISOString())!.status,
+    ).toBe("blocked");
+    expect(
+      slots.find((s) => s.startsAt === kolkataHourToUtc("2026-07-13", 12).toISOString())!.status,
+    ).toBe("free");
   });
 
   it("never contains booker identity fields", () => {

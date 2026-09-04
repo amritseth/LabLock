@@ -398,7 +398,9 @@ export async function cancelBooking(
       bookingId,
       resourceId: booking.resource_id,
       startsAt: booking.starts_at,
-      cancelledAt: updated[0]?.cancelled_at ? new Date(updated[0].cancelled_at).toISOString() : null,
+      cancelledAt: updated[0]?.cancelled_at
+        ? new Date(updated[0].cancelled_at).toISOString()
+        : null,
       requestId: ctx.requestId,
     };
     await markTerminal(tx, idempotencyKey, "committed", body);

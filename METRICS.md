@@ -7,44 +7,44 @@
 
 ## Current metrics (as of 13 July 2026 — pre-pilot)
 
-| Metric | Current | Notes |
-| --- | --- | --- |
-| Invited users | **0** | Pilot allowlist not created yet |
-| Signed-up users | **0** | Auth connected after Slice B |
-| Activated users | **0** | Activation = verified email + first availability view |
-| Activation rate | **N/A** | Denominator (signed-up) = 0 |
-| 7-day retention | **N/A** | No matured cohorts |
-| Successful bookings | **0** | Booking transaction exists; no users yet |
-| Booking success rate | **N/A** | 0 / 0 is undefined |
-| Booking API p95 | **N/A** | No production traffic |
-| Connected-client update p95 | **N/A** | No production Realtime traffic |
-| Reconnect convergence p95 | **N/A** | No production Realtime traffic |
-| Double bookings | **0** | The only metric that is genuinely 0 and proud of it (invariant tests: 20-race, cancel/book race) |
-| Invariant test suite | **15/15 passing** | `tests/integration` against PostgreSQL 17 |
-| Unit tests | **32 passing** | health, slots, availability, validation |
+| Metric                      | Current           | Notes                                                                                            |
+| --------------------------- | ----------------- | ------------------------------------------------------------------------------------------------ |
+| Invited users               | **0**             | Pilot allowlist not created yet                                                                  |
+| Signed-up users             | **0**             | Auth connected after Slice B                                                                     |
+| Activated users             | **0**             | Activation = verified email + first availability view                                            |
+| Activation rate             | **N/A**           | Denominator (signed-up) = 0                                                                      |
+| 7-day retention             | **N/A**           | No matured cohorts                                                                               |
+| Successful bookings         | **0**             | Booking transaction exists; no users yet                                                         |
+| Booking success rate        | **N/A**           | 0 / 0 is undefined                                                                               |
+| Booking API p95             | **N/A**           | No production traffic                                                                            |
+| Connected-client update p95 | **N/A**           | No production Realtime traffic                                                                   |
+| Reconnect convergence p95   | **N/A**           | No production Realtime traffic                                                                   |
+| Double bookings             | **0**             | The only metric that is genuinely 0 and proud of it (invariant tests: 20-race, cancel/book race) |
+| Invariant test suite        | **15/15 passing** | `tests/integration` against PostgreSQL 17                                                        |
+| Unit tests                  | **32 passing**    | health, slots, availability, validation                                                          |
 
 ### Verification evidence (not user metrics — repository evidence)
 
-| What | Evidence |
-| --- | --- |
-| `pnpm check` green (format, lint, typecheck, unit tests, production build) | CI contract — run locally on every change |
-| Migrations apply clean + lint | `supabase db reset --local` + `supabase db lint --local --level warning` (CI job) |
-| 20 users one slot → exactly one winner | `tests/integration/bookings.integration.test.ts` |
-| Idempotency matrix (same key 20×, reuse 409, lost-response replay, no-key 400) | same file |
-| Rollback atomicity (no partial state) | same file |
+| What                                                                           | Evidence                                                                          |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `pnpm check` green (format, lint, typecheck, unit tests, production build)     | CI contract — run locally on every change                                         |
+| Migrations apply clean + lint                                                  | `supabase db reset --local` + `supabase db lint --local --level warning` (CI job) |
+| 20 users one slot → exactly one winner                                         | `tests/integration/bookings.integration.test.ts`                                  |
+| Idempotency matrix (same key 20×, reuse 409, lost-response replay, no-key 400) | same file                                                                         |
+| Rollback atomicity (no partial state)                                          | same file                                                                         |
 
 ## Initial targets (NOT current results — require production evidence)
 
-| Measure | Target |
-| --- | --- |
-| Signup → activation | ≥ 70% |
-| Median time to first booking | < 60 seconds |
-| 7-day retention | ≥ 35% |
-| Booking transaction p95 | < 800 ms |
-| Connected-client update p95 | < 2 seconds |
-| Reconnect convergence | < 3 seconds |
-| Double bookings | **0** (any occurrence = severity P0) |
-| One user holding prime slots | < 30% (quota trigger) |
+| Measure                      | Target                               |
+| ---------------------------- | ------------------------------------ |
+| Signup → activation          | ≥ 70%                                |
+| Median time to first booking | < 60 seconds                         |
+| 7-day retention              | ≥ 35%                                |
+| Booking transaction p95      | < 800 ms                             |
+| Connected-client update p95  | < 2 seconds                          |
+| Reconnect convergence        | < 3 seconds                          |
+| Double bookings              | **0** (any occurrence = severity P0) |
+| One user holding prime slots | < 30% (quota trigger)                |
 
 ## Planned funnel (Slice D — PostHog)
 
@@ -68,6 +68,6 @@ latency and reason codes only.
 
 ## Learning log
 
-| Week | Evidence | Change |
-| --- | --- | --- |
+| Week       | Evidence                      | Change                                                           |
+| ---------- | ----------------------------- | ---------------------------------------------------------------- |
 | 2026-07-13 | Pre-pilot; nothing to measure | **No change** — pilot not open; metrics stay 0/N/A by definition |

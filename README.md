@@ -11,12 +11,12 @@ integration tests. **Not yet deployed** — there is no live URL, no production
 backups, and no real users today. See [METRICS.md](./METRICS.md) for the honest
 numbers.
 
-| | |
-| --- | --- |
-| Stack | Next.js 16.2.10 + TypeScript 5.9 · Supabase (Auth + Postgres 17 + Realtime) · Vercel (Mumbai `bom1`) · Resend · Sentry · PostHog · Better Stack · GitHub Actions |
-| Runtime pins | Node **20.20.x**, pnpm **10.34.5** (exact, `packageManager` field) |
-| Cost | ~$25/mo (Supabase Pro) + domain at 100 users; Vercel Hobby + free observability tiers |
-| Status badges | `[✓]` implemented + locally verified · `[~]` designed, not implemented · `[!]` not yet verified/deployed |
+|               |                                                                                                                                                                  |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stack         | Next.js 16.2.10 + TypeScript 5.9 · Supabase (Auth + Postgres 17 + Realtime) · Vercel (Mumbai `bom1`) · Resend · Sentry · PostHog · Better Stack · GitHub Actions |
+| Runtime pins  | Node **20.20.x**, pnpm **10.34.5** (exact, `packageManager` field)                                                                                               |
+| Cost          | ~$25/mo (Supabase Pro) + domain at 100 users; Vercel Hobby + free observability tiers                                                                            |
+| Status badges | `[✓]` implemented + locally verified · `[~]` designed, not implemented · `[!]` not yet verified/deployed                                                         |
 
 ## The one hard part
 
@@ -33,20 +33,20 @@ CREATE UNIQUE INDEX bookings_one_confirmed_per_slot
 
 ## Status — honest and current
 
-| Component | Status | Evidence |
-| --- | --- | --- |
-| Mobile-first landing, login placeholder, privacy/terms/changelog | `[✓]` | `app/page.tsx`, `app/login`, `app/privacy`, `app/terms`, `app/changelog` |
-| Sanitized, fail-closed `/api/health` (2s probe, request-id, no-store) | `[✓]` | `app/api/health/route.ts`, `lib/health.ts` + 3-case tests |
-| Pino structured logger with PII redaction | `[✓]` | `lib/logger.ts` |
-| Sentry integration points (DSN blank → no events yet) | `[✓]` | `instrumentation.ts`, `sentry.*.config.ts` |
-| Security headers (CSP, HSTS, COOP, X-Frame-Options DENY, …) | `[✓]` | `next.config.ts` |
-| Supabase migrations: `healthcheck()` RPC + 7 booking tables | `[✓]` | `supabase/migrations/*.sql` |
-| Auth (Google OAuth PKCE + email OTP, httpOnly cookies, invite-only) | `[✓]` | `app/login`, `app/api/auth/*`, `lib/supabase/*` |
-| Booking transaction (ten steps, one commit, idempotency) | `[✓]` | `lib/bookings.ts` |
-| Operator: block/unblock slots, cancel any, audit trail | `[✓]` | `app/api/slot-blocks/*`, `app/api/audit`, `app/admin` |
-| Realtime invalidation + subscribe→refetch→invalidate→refetch client | `[✓]` | `lib/use-availability-sync.ts`, `app/components/availability-client.tsx` |
-| CI + gated deploy workflows (actions pinned by SHA) | `[✓]` | `.github/workflows/ci.yml`, `deploy.yml` |
-| **Production deployment, live URL, backups, monitoring, users** | `[!]` | workflows exist, not executed |
+| Component                                                             | Status | Evidence                                                                 |
+| --------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------ |
+| Mobile-first landing, login placeholder, privacy/terms/changelog      | `[✓]`  | `app/page.tsx`, `app/login`, `app/privacy`, `app/terms`, `app/changelog` |
+| Sanitized, fail-closed `/api/health` (2s probe, request-id, no-store) | `[✓]`  | `app/api/health/route.ts`, `lib/health.ts` + 3-case tests                |
+| Pino structured logger with PII redaction                             | `[✓]`  | `lib/logger.ts`                                                          |
+| Sentry integration points (DSN blank → no events yet)                 | `[✓]`  | `instrumentation.ts`, `sentry.*.config.ts`                               |
+| Security headers (CSP, HSTS, COOP, X-Frame-Options DENY, …)           | `[✓]`  | `next.config.ts`                                                         |
+| Supabase migrations: `healthcheck()` RPC + 7 booking tables           | `[✓]`  | `supabase/migrations/*.sql`                                              |
+| Auth (Google OAuth PKCE + email OTP, httpOnly cookies, invite-only)   | `[✓]`  | `app/login`, `app/api/auth/*`, `lib/supabase/*`                          |
+| Booking transaction (ten steps, one commit, idempotency)              | `[✓]`  | `lib/bookings.ts`                                                        |
+| Operator: block/unblock slots, cancel any, audit trail                | `[✓]`  | `app/api/slot-blocks/*`, `app/api/audit`, `app/admin`                    |
+| Realtime invalidation + subscribe→refetch→invalidate→refetch client   | `[✓]`  | `lib/use-availability-sync.ts`, `app/components/availability-client.tsx` |
+| CI + gated deploy workflows (actions pinned by SHA)                   | `[✓]`  | `.github/workflows/ci.yml`, `deploy.yml`                                 |
+| **Production deployment, live URL, backups, monitoring, users**       | `[!]`  | workflows exist, not executed                                            |
 
 Slice A is locally verified but is **NOT considered shipped** until external
 deployment, monitoring, database backups and the live URL are verified.
@@ -98,19 +98,19 @@ lablock/
 
 ## Request → code map
 
-| Request | Code path |
-| --- | --- |
-| `GET /` | `app/page.tsx` (session-aware hero, demo slot strip) |
-| `GET /login` | `app/login/page.tsx` → `SignInForm` (placeholder when unconfigured) |
-| `GET /availability` | `app/availability/page.tsx` → `loadAvailability()` + `AvailabilityClient` |
-| `GET /admin` | `app/admin/page.tsx` (operator role only) |
-| `GET /api/health` | `route.ts` → `buildHealthReport()` → Supabase `healthcheck()` RPC |
-| `GET /api/availability` | `route.ts` → `loadAvailability()` → `fetchOccupancy()` |
-| `POST /api/bookings` | `route.ts` → `bookSlot()` — ten-step transaction |
-| `DELETE /api/bookings/:id` | `route.ts` → `cancelBooking()` |
-| `POST /api/slot-blocks` | `route.ts` → `blockSlot()` (operator) |
-| `DELETE /api/slot-blocks/:id` | `route.ts` → `unblockSlot()` (operator) |
-| `GET /api/audit` | `route.ts` → `listAuditEvents()` (operator) |
+| Request                       | Code path                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| `GET /`                       | `app/page.tsx` (session-aware hero, demo slot strip)                      |
+| `GET /login`                  | `app/login/page.tsx` → `SignInForm` (placeholder when unconfigured)       |
+| `GET /availability`           | `app/availability/page.tsx` → `loadAvailability()` + `AvailabilityClient` |
+| `GET /admin`                  | `app/admin/page.tsx` (operator role only)                                 |
+| `GET /api/health`             | `route.ts` → `buildHealthReport()` → Supabase `healthcheck()` RPC         |
+| `GET /api/availability`       | `route.ts` → `loadAvailability()` → `fetchOccupancy()`                    |
+| `POST /api/bookings`          | `route.ts` → `bookSlot()` — ten-step transaction                          |
+| `DELETE /api/bookings/:id`    | `route.ts` → `cancelBooking()`                                            |
+| `POST /api/slot-blocks`       | `route.ts` → `blockSlot()` (operator)                                     |
+| `DELETE /api/slot-blocks/:id` | `route.ts` → `unblockSlot()` (operator)                                   |
+| `GET /api/audit`              | `route.ts` → `listAuditEvents()` (operator)                               |
 
 ## Quick start
 
@@ -215,13 +215,13 @@ Conflict — **409**:
 
 ## Docs
 
-| File | What it covers |
-| --- | --- |
-| [METRICS.md](./METRICS.md) | Honest metrics — today every user metric is 0 / N/A; targets; weekly ritual |
-| [NOTES.md](./NOTES.md) | Design decisions, rejected alternatives, timezone/idempotency subtleties, Later list |
-| [RUNBOOK.md](./RUNBOOK.md) | Deploy, rollback, incidents 1–3, backups, launch security checklist |
-| [SECURITY.md](./SECURITY.md) | Threat model, implemented controls, secret flow, PII boundaries |
-| [CHANGELOG.md](./CHANGELOG.md) | Slice A → C, per release |
+| File                           | What it covers                                                                       |
+| ------------------------------ | ------------------------------------------------------------------------------------ |
+| [METRICS.md](./METRICS.md)     | Honest metrics — today every user metric is 0 / N/A; targets; weekly ritual          |
+| [NOTES.md](./NOTES.md)         | Design decisions, rejected alternatives, timezone/idempotency subtleties, Later list |
+| [RUNBOOK.md](./RUNBOOK.md)     | Deploy, rollback, incidents 1–3, backups, launch security checklist                  |
+| [SECURITY.md](./SECURITY.md)   | Threat model, implemented controls, secret flow, PII boundaries                      |
+| [CHANGELOG.md](./CHANGELOG.md) | Slice A → C, per release                                                             |
 
 ## Roadmap
 

@@ -10,20 +10,20 @@ reaches the browser.**
 
 ## Threat model
 
-| Threat | Entry point | Prevention | Detection |
-| --- | --- | --- | --- |
-| SQL injection | Any input reaching a query | Parameterized queries only; Zod at the boundary (`lib/validation.ts`) | Sentry anomaly; audit review |
-| Broken access control | Missing role check | RLS on every table + role check in route; integration tests | Audit review; Sentry |
-| CSRF | Forged state-changing request | SameSite httpOnly cookies; idempotency keys; origin-scoped OAuth redirect allowlist | Audit mismatch |
-| XSS | Unsanitized user input rendered | React auto-escaping; CSP `script-src 'self' 'unsafe-inline'`; no dangerouslySetInnerHTML | CSP report; Sentry |
-| Credential leakage | Committed `.env`, leaked token | `.gitignore`; secret manager (Vercel + GitHub environments); rotation playbook | Secret scanning; access review |
-| Service-role exposure | Client bundle, leaked env | `server-only` imports; no `NEXT_PUBLIC_` on server keys; `lib/supabase/client.ts` is anon-only | Access audit; anomaly |
-| Brute-force auth | Login endpoint | Supabase rate limits (`30/5 min per IP`), Turnstile on signup/reset, strong password policy | Auth log spike |
-| Booking automation | Scripted booking requests | Auth required; idempotency keys; Realtime events never grant truth | Funnel anomaly; concentration metric |
-| Duplicate requests | Double-click, retry | Idempotency keys + partial unique index | Audit log |
-| Realtime PII leakage | Realtime payload | `availability_events` has **no** `user_id`/email by schema; RLS = authenticated read | Code review; realtime log |
-| Dependency vulnerabilities | Transitive npm package | Pinned exact versions, frozen lockfile, Dependabot weekly, `pnpm audit` | Dependabot alerts |
-| Malicious PR accessing deploy secrets | PR with modified workflow | Actions pinned by **SHA**; `deploy.yml` gated to `workflow_run` conclusion success + push + `main` + same repository; `permissions: contents: read` | CI log review; secret scanning |
+| Threat                                | Entry point                     | Prevention                                                                                                                                          | Detection                            |
+| ------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| SQL injection                         | Any input reaching a query      | Parameterized queries only; Zod at the boundary (`lib/validation.ts`)                                                                               | Sentry anomaly; audit review         |
+| Broken access control                 | Missing role check              | RLS on every table + role check in route; integration tests                                                                                         | Audit review; Sentry                 |
+| CSRF                                  | Forged state-changing request   | SameSite httpOnly cookies; idempotency keys; origin-scoped OAuth redirect allowlist                                                                 | Audit mismatch                       |
+| XSS                                   | Unsanitized user input rendered | React auto-escaping; CSP `script-src 'self' 'unsafe-inline'`; no dangerouslySetInnerHTML                                                            | CSP report; Sentry                   |
+| Credential leakage                    | Committed `.env`, leaked token  | `.gitignore`; secret manager (Vercel + GitHub environments); rotation playbook                                                                      | Secret scanning; access review       |
+| Service-role exposure                 | Client bundle, leaked env       | `server-only` imports; no `NEXT_PUBLIC_` on server keys; `lib/supabase/client.ts` is anon-only                                                      | Access audit; anomaly                |
+| Brute-force auth                      | Login endpoint                  | Supabase rate limits (`30/5 min per IP`), Turnstile on signup/reset, strong password policy                                                         | Auth log spike                       |
+| Booking automation                    | Scripted booking requests       | Auth required; idempotency keys; Realtime events never grant truth                                                                                  | Funnel anomaly; concentration metric |
+| Duplicate requests                    | Double-click, retry             | Idempotency keys + partial unique index                                                                                                             | Audit log                            |
+| Realtime PII leakage                  | Realtime payload                | `availability_events` has **no** `user_id`/email by schema; RLS = authenticated read                                                                | Code review; realtime log            |
+| Dependency vulnerabilities            | Transitive npm package          | Pinned exact versions, frozen lockfile, Dependabot weekly, `pnpm audit`                                                                             | Dependabot alerts                    |
+| Malicious PR accessing deploy secrets | PR with modified workflow       | Actions pinned by **SHA**; `deploy.yml` gated to `workflow_run` conclusion success + push + `main` + same repository; `permissions: contents: read` | CI log review; secret scanning       |
 
 ## Implemented controls
 
@@ -40,15 +40,15 @@ Pino `redact` paths — censored **before** the line is written:
 
 ### 3. RLS matrix (no client write policies exist)
 
-| Table | Read | Write |
-| --- | --- | --- |
-| `profiles` | own row; operator all | service role / auth trigger |
-| `resources` | public | operator |
-| `bookings` | own rows; operator all (occupancy-only via API, no client insert) | server transaction (service role) |
-| `slot_blocks` | public | operator |
-| `idempotency_records` | **none — server-only, no policies** | server transaction |
-| `audit_events` | operator only | server transaction |
-| `availability_events` | authenticated (PII-free payload) | server transaction |
+| Table                 | Read                                                              | Write                             |
+| --------------------- | ----------------------------------------------------------------- | --------------------------------- |
+| `profiles`            | own row; operator all                                             | service role / auth trigger       |
+| `resources`           | public                                                            | operator                          |
+| `bookings`            | own rows; operator all (occupancy-only via API, no client insert) | server transaction (service role) |
+| `slot_blocks`         | public                                                            | operator                          |
+| `idempotency_records` | **none — server-only, no policies**                               | server transaction                |
+| `audit_events`        | operator only                                                     | server transaction                |
+| `availability_events` | authenticated (PII-free payload)                                  | server transaction                |
 
 ### 4. Auth (§12)
 
@@ -73,8 +73,8 @@ nosniff` · Permissions-Policy (no camera/mic/geo/payment).
   pnpm/action-setup v4.3.0, setup-cli v1.7.0, upload-artifact v4.6.2).
 - `pnpm install --frozen-lockfile` — the lockfile is the contract.
 - Deploy: `workflow_run` gate (`conclusion == success && event == push &&
-  head_branch == main && head_repository == this repo`), `environment:
-  production` with owner approval, `permissions: contents: read` (a forked PR
+head_branch == main && head_repository == this repo`), `environment:
+production` with owner approval, `permissions: contents: read` (a forked PR
   cannot reach deployment secrets).
 
 ## Secret flow
@@ -106,7 +106,7 @@ nosniff` · Permissions-Policy (no camera/mic/geo/payment).
 - **Never to logs:** tokens, passwords, emails, cookies, keys (redaction list
   above).
 - **Available to the operator only:** audit trail (with `hashed_user_ref =
-  SHA-256(user_id ‖ AUDIT_PEPPER)`), all booking rows.
+SHA-256(user_id ‖ AUDIT_PEPPER)`), all booking rows.
 - Sentry: `sendDefaultPii: false` everywhere.
 
 ## Vulnerability response
