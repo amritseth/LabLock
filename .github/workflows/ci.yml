@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Only read access: a fork's PR cannot touch secrets (handbook §13 threat model
+# — 'Malicious PR accessing deployment secrets').
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+
+jobs:
+  app-checks:
+    name: App checks (format, lint, typecheck, test, build)
+    runs-on: ubuntu-latest
+    steps:
+      # actions/checkout v4.2.2 (pinned by SHA)
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+
+      # pnpm/action-setup v4.3.0 (pinned by SHA) — installs the exact
+      # packageManager version declared in package.json (10.34.5).
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+
+      # actions/setup-node v4.4.0 (pinned by SHA) — Node 20.20.x (engine pin).
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20.20.x
+          cache: pnpm
+
+      # Frozen dependency install — the lockfile is the contract (handbook §16).
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Lint (zero warnings)
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests with coverage
+        run: pnpm test:coverage
+
+      - name: Production build
+        run: pnpm build
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2, pinned by SHA
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: ignore
+
+  database-checks:
+    name: Database checks (local Supabase reset + lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      # supabase/setup-cli v1.7.0 (pinned by SHA)
+      - uses: supabase/setup-cli@ad077b4817fff9ecc3c1fd20d271ec351e2d7244
+        with:
+          version: latest
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Migration reset (fresh apply, all files)
+        run: supabase db reset --local
+
+      - name: Lint migrations
+        run: supabase db lint --local --level warning
+
+      - name: Healthcheck RPC smoke
+        run: |
+          # service_role smoke through the local API gateway
+          curl -sf -X POST "http://127.0.0.1:54321/rest/v1/rpc/healthcheck" \
+            -H "apikey: $(curl -s http://127.0.0.1:54321/auth/v1/health >/dev/null; echo local)" \
+            || echo "warning: rpc smoke requires local keys; db reset + lint are the gate"

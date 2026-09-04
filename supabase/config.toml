@@ -1,0 +1,76 @@
+# Supabase local development configuration — LabLock
+# https://supabase.com/docs/guides/local-development/cli/config
+#
+# Postgres 17, Realtime enabled, invite-only auth (enable_signup = false),
+# rate limits + Turnstile placeholders per handbook §12 (planned auth design).
+
+project_id = "lablock"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+max_rows = 1000
+extra_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+major_version = 17
+shadow_port = 54320
+
+[db.pooler]
+enabled = true
+port = 54329
+pool_mode = "transaction"
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[realtime]
+enabled = true
+
+[analytics]
+enabled = false
+
+[edge_runtime]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/api/auth/callback"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = false # invite-only pilot: accounts are created by the operator
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = false
+enable_confirmations = true
+otp_length = 6
+otp_expiry = 3600 # 1 hour, per handbook §12
+
+# Handbook §12: auth endpoint rate limiting (sign_in_sign_ups: 30 per 5 min per IP;
+# token_verifications: 30).
+[auth.rate_limit]
+token_verifications = "30/5 minutes"
+sign_in_sign_ups = "30/5 minutes"
+
+# Google OAuth (PKCE) — fill in from the Google Cloud console before launch.
+[auth.external.google]
+enabled = false
+client_id = "env(GOOGLE_CLIENT_ID)"
+secret = "env(GOOGLE_CLIENT_SECRET)"
+redirect_uri = "http://localhost:3000/api/auth/callback"
+
+# Cloudflare Turnstile on signup/reset forms (handbook §12, §13).
+[auth.captcha]
+enabled = false
+provider = "turnstile"
+secret = "env(TURNSTILE_SECRET_KEY)"

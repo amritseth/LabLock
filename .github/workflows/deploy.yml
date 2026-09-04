@@ -1,0 +1,95 @@
+name: Deploy production
+
+# Deploy runs ONLY after CI succeeds on the EXACT commit being deployed
+# (workflow_run guarantees it) — handbook §16 "PR-to-production pipeline".
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+  # Manual override is deliberately absent: deploys come from main, never
+  # from a laptop (handbook §24 S8).
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Migrate → build → deploy → smoke
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_sha != ''
+    runs-on: ubuntu-latest
+    environment: production # requires owner approval (RUNBOOK §Launch checklist)
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          # The verified commit itself, not the tip of main at run time.
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Verify required secrets are configured
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          for v in VERCEL_ORG_ID VERCEL_PROJECT_ID VERCEL_TOKEN SUPABASE_DB_URL; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Missing required secret: $v"
+              exit 1
+            fi
+          done
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20.20.x
+          cache: pnpm
+
+      - name: Install dependencies (frozen)
+        run: pnpm install --frozen-lockfile
+
+      # MIGRATION-FIRST: apply additive migrations BEFORE the new build is
+      # promoted. Old app version serves briefly against the new schema, so
+      # migrations must stay backward-compatible; destructive down-migrations
+      # are forbidden (handbook §16).
+      - name: Apply migrations (backward-compatible)
+        run: npx --yes supabase@2.116.0 db push --db-url "$SUPABASE_DB_URL"
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Pull production environment
+        run: npx --yes vercel@59.11.2 pull --yes --environment=production --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build (production, immutable)
+        run: npx --yes vercel@59.11.2 build --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy (prebuilt, production)
+        run: npx --yes vercel@59.11.2 deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      # Smoke test: 6 retries × 5s delay, fail on non-200. Fail-closed health
+      # means this 503s loudly if the DB probe cannot run (handbook §14).
+      - name: Smoke test /api/health
+        run: |
+          curl --fail --retry 6 --retry-all-errors --retry-delay 5 \
+            "https://${{ secrets.VERCEL_PROD_DOMAIN }}/api/health"
+        env:
+          VERCEL_PROD_DOMAIN: ${{ secrets.VERCEL_PROD_DOMAIN }}
