@@ -108,6 +108,10 @@ production` with owner approval, `permissions: contents: read` (a forked PR
 - **Available to the operator only:** audit trail (with `hashed_user_ref =
 SHA-256(user_id ‖ AUDIT_PEPPER)`), all booking rows.
 - Sentry: `sendDefaultPii: false` everywhere.
+- PostHog: bundled `posthog-js` (no third-party script), **autocapture off,
+  session recording off**, and a per-event property whitelist in
+  `lib/analytics.ts` — email, name, `user_id`, `booking_id` are prohibited by
+  taxonomy and dropped before dispatch.
 
 ## Vulnerability response
 

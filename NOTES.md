@@ -55,7 +55,12 @@ evidence.
    in Kolkata_ — UTC minute 30 — and `slots.ts` encodes that invariant so the
    API never invents a 10:45 IST slot.
 
-7. **`x-request-id` correlation.** Accepted only when matching
+7. **PostHog events are whitelisted, not sanitized.** `lib/analytics.ts`
+   drops every property not in the §15.1 taxonomy for that event BEFORE
+   posthog-js sees it — email/name/user_id/booking_id are structurally
+   impossible to send. `resource_id` carries the slug (`project-lab`), which
+   is the same information class the taxonomy allows.
+8. **`x-request-id` correlation.** Accepted only when matching
    `^[a-zA-Z0-9._-]{1,64}$` (otherwise a UUID is generated) and echoed on every
    Health response, so Better Stack → Vercel logs → Sentry → `audit_events`
    line up through one key.
@@ -82,8 +87,15 @@ it blocks the core action, retention, or operations.
       locally reviewed, never run on GitHub).
 - [ ] Decide CSP report-only vs enforce after first deploy.
 - [ ] Update operator contact + retention details in `/privacy` before pilot.
-- [ ] PostHog instrumentation (Slice D): DSN absent, event taxonomy documented
-      in METRICS.md.
+- [ ] Trigger `signup_completed` for the Google OAuth path (currently only the
+      email-OTP verify step fires it; the OAuth callback is server-side and
+      would need posthog-node or a client-side one-shot after redirect).
+- [ ] Run `pnpm e2e:convergence` on a machine with `supabase start` (Inbucket)
+      — the 3 gated tests cover §11 two-browser + reconnect convergence.
+- [ ] Known dev-mode friction: the strict CSP (`script-src` without
+      `unsafe-eval`) makes React's dev-only eval() warn in the browser console.
+      Production builds never use eval (verified via `pnpm build`); decide
+      report-only vs enforce after first deploy (§16 of the handbook).
 - [ ] Operator assignment procedure: `update profiles set role='operator'
 where id = <auth user id>;` — document in RUNBOOK before pilot.
 - [ ] Broker Restore-drill for managed backups after Supabase Pro exists (§18).

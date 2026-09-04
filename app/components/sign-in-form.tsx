@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { capture } from "@/lib/analytics";
 
 export function SignInForm({ errorCode }: { errorCode?: string }) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -12,6 +16,7 @@ export function SignInForm({ errorCode }: { errorCode?: string }) {
   async function handleGoogle() {
     setBusy(true);
     setMessage(null);
+    capture("signup_started", { method: "google" });
     const supabase = getSupabaseBrowserClient();
     const origin = window.location.origin;
     const { error } = await supabase.auth.signInWithOAuth({
@@ -28,6 +33,7 @@ export function SignInForm({ errorCode }: { errorCode?: string }) {
     event.preventDefault();
     setBusy(true);
     setMessage(null);
+    capture("signup_started", { method: "email" });
     const supabase = getSupabaseBrowserClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -39,7 +45,30 @@ export function SignInForm({ errorCode }: { errorCode?: string }) {
       return;
     }
     setOtpSent(true);
-    setMessage("If this address is on the pilot allowlist, a one-time code is on its way.");
+    setMessage(
+      "If this address is on the pilot allowlist, a one-time code is on its way (1 hour expiry).",
+    );
+  }
+
+  async function handleVerify(event: React.FormEvent) {
+    event.preventDefault();
+    if (code.trim().length !== 6) {
+      setMessage("Enter the 6-digit code from your email.");
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    const started = Date.now();
+    const supabase = getSupabaseBrowserClient();
+    const { error } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: "email" });
+    setBusy(false);
+    if (error) {
+      setMessage(`Verification failed: ${error.message}`);
+      return;
+    }
+    capture("signup_completed", { method: "email", duration_ms: Date.now() - started });
+    router.push("/availability");
+    router.refresh();
   }
 
   if (errorCode) {
@@ -94,14 +123,52 @@ export function SignInForm({ errorCode }: { errorCode?: string }) {
           className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
           autoComplete="email"
         />
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
-        >
-          {otpSent ? "Resend code" : "Email me a code"}
-        </button>
+        {!otpSent && (
+          <button
+            type="submit"
+            disabled={busy}
+            className="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+          >
+            {busy ? "Sending…" : "Email me a code"}
+          </button>
+        )}
       </form>
+
+      {otpSent && (
+        <form onSubmit={handleVerify} className="space-y-2">
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]{6}"
+            maxLength={6}
+            required
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+            placeholder="6-digit code"
+            aria-label="One-time code"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-center text-sm font-semibold tracking-[0.3em] focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+          />
+          <button
+            type="submit"
+            disabled={busy}
+            className="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+          >
+            {busy ? "Verifying…" : "Verify & sign in"}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setOtpSent(false);
+              setCode("");
+              setMessage(null);
+            }}
+            className="w-full text-xs font-semibold text-slate-500 hover:underline"
+          >
+            Use a different address
+          </button>
+        </form>
+      )}
 
       <p className="text-xs text-slate-500">
         Invite-only pilot — new accounts are created by the operator on the allowlist. Code expires

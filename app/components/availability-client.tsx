@@ -7,9 +7,11 @@ import {
   kolkataDayMonth,
   kolkataHour,
   kolkataRange,
+  kolkataToday,
   kolkataWeekday,
   isToday,
 } from "@/lib/format-time";
+import { capture } from "@/lib/analytics";
 
 export interface MyBookingRow {
   id: string;
@@ -52,6 +54,13 @@ export function AvailabilityClient({ initial, myBookings, displayName, role }: P
     return key;
   }, []);
 
+  // §15.1 — availability_viewed fires once per page view. Allowed props:
+  // resource_id, date (no user_id, no email).
+  useEffect(() => {
+    capture("availability_viewed", { resource_id: initial.resourceSlug, date: kolkataToday() });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function fetchMyBookings() {
     const response = await fetch("/api/bookings?mine=1", { cache: "no-store" }).catch(() => null);
     if (response?.ok) {
@@ -62,6 +71,11 @@ export function AvailabilityClient({ initial, myBookings, displayName, role }: P
 
   async function confirmBooking() {
     if (!pendingSlot) return;
+    capture("booking_started", {
+      resource_id: initial.resourceSlug,
+      starts_at: pendingSlot.startsAt,
+    });
+    const started = Date.now();
     setBooking({ state: "busy", message: "Talking to the database…" });
     const response = await fetch("/api/bookings", {
       method: "POST",
@@ -74,6 +88,11 @@ export function AvailabilityClient({ initial, myBookings, displayName, role }: P
     }).catch(() => null);
     const payload = response ? await response.json().catch(() => null) : null;
     if (response?.ok && payload?.status === "confirmed") {
+      capture("booking_succeeded", {
+        resource_id: initial.resourceSlug,
+        starts_at: payload.startsAt,
+        duration_ms: Date.now() - started,
+      });
       setBooking({
         state: "idle",
         ok: true,
@@ -84,6 +103,11 @@ export function AvailabilityClient({ initial, myBookings, displayName, role }: P
       void fetchMyBookings();
       return;
     }
+    capture("booking_failed", {
+      resource_id: initial.resourceSlug,
+      starts_at: pendingSlot.startsAt,
+      reason_code: payload?.reason ?? "request_failed",
+    });
     setBooking({
       state: "idle",
       ok: false,
@@ -96,7 +120,12 @@ export function AvailabilityClient({ initial, myBookings, displayName, role }: P
     void refetch();
   }
 
-  async function cancelBooking(id: string) {
+  async function cancelBooking(id: string, startsAt: string) {
+    capture("booking_cancelled", {
+      resource_id: initial.resourceSlug,
+      starts_at: startsAt,
+      actor_role: role,
+    });
     setBooking({ state: "busy", message: "Cancelling…" });
     await fetch(`/api/bookings/${id}?reason=pilot_cancellation`, {
       method: "DELETE",
@@ -191,6 +220,8 @@ export function AvailabilityClient({ initial, myBookings, displayName, role }: P
             return (
               <li key={slot.startsAt}>
                 <button
+                  data-testid={`slot-${slot.startsAt}`}
+                  data-status={slot.isPast ? "past" : slot.status}
                   disabled={disabled}
                   onClick={() => {
                     setPendingSlot(slot);
@@ -230,6 +261,7 @@ export function AvailabilityClient({ initial, myBookings, displayName, role }: P
           </p>
           <div className="mt-3 flex gap-2">
             <button
+              data-testid="confirm-booking"
               onClick={confirmBooking}
               disabled={booking.state === "busy"}
               className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
@@ -264,7 +296,11 @@ export function AvailabilityClient({ initial, myBookings, displayName, role }: P
         ) : (
           <ul className="mt-2 divide-y divide-slate-100">
             {upcoming.map((b) => (
-              <li key={b.id} className="flex items-center justify-between py-2.5 text-sm">
+              <li
+                key={b.id}
+                data-testid={`booking-${b.id}`}
+                className="flex items-center justify-between py-2.5 text-sm"
+              >
                 <div>
                   <p className="font-semibold text-slate-800">
                     {new Intl.DateTimeFormat("en-IN", {
@@ -278,7 +314,7 @@ export function AvailabilityClient({ initial, myBookings, displayName, role }: P
                   <p className="text-xs text-slate-400">{b.resource_name}</p>
                 </div>
                 <button
-                  onClick={() => void cancelBooking(b.id)}
+                  onClick={() => void cancelBooking(b.id, b.starts_at)}
                   disabled={booking.state === "busy"}
                   className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-red-300 hover:text-red-600 disabled:opacity-60"
                 >

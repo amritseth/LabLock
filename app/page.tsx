@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { SiteHeader } from "@/app/components/site-header";
 import { SiteFooter } from "@/app/components/site-footer";
+import { HeroCta } from "@/app/components/hero-cta";
 import { getSessionActor } from "@/lib/supabase/server";
 
 /**
@@ -60,21 +60,7 @@ export default async function HomePage() {
             confirms it is yours. Returning booking in under 20 seconds.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            {actor ? (
-              <Link
-                href="/availability"
-                className="rounded-xl bg-brand-500 px-6 py-3 text-sm font-bold text-white hover:bg-brand-400"
-              >
-                Open live availability →
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="rounded-xl bg-brand-500 px-6 py-3 text-sm font-bold text-white hover:bg-brand-400"
-              >
-                Join the pilot
-              </Link>
-            )}
+            <HeroCta signedIn={Boolean(actor)} />
             <a
               href="#how"
               className="rounded-xl border border-slate-600 px-6 py-3 text-sm font-bold text-slate-200 hover:bg-slate-800"

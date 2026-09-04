@@ -40,12 +40,14 @@ export function kolkataDayMonth(dateStr: string): string {
 }
 
 export function isToday(dateStr: string): boolean {
-  const now = new Date();
-  const today = new Intl.DateTimeFormat("en-CA", {
+  return dateStr === kolkataToday();
+}
+
+export function kolkataToday(): string {
+  return new Intl.DateTimeFormat("en-CA", {
     timeZone: KOLKATA_TZ,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(now);
-  return dateStr === today;
+  }).format(new Date());
 }

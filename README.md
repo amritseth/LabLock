@@ -89,6 +89,9 @@ lablock/
 ├── tests/
 │   ├── integration/           # invariant tests vs real Postgres (§17)
 │   └── stubs/server-only.ts   # vitest alias
+├── e2e/
+│   ├── public.spec.ts         # 11 browser tests (no external services)
+│   └── convergence.spec.ts    # §11 two-browser + reconnect (gated on local Supabase)
 ├── scripts/prepare-local-db.sh # local Supabase stand-in (DEV ONLY)
 ├── .github/                   # ci.yml, deploy.yml, dependabot.yml, PR template
 ├── instrumentation*.ts        # Sentry server/edge registration
@@ -142,7 +145,22 @@ TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/lablock_test \
   pnpm test:integration
 ```
 
-The suite proves (§17 "Planned invariant tests"): 20 users target one slot →
+### Browser E2E
+
+```bash
+pnpm e2e                  # public suite (no external services) — 11 tests
+pnpm e2e:convergence      # Slice C contract — requires `supabase start` + E2E_LOCAL_SUPABASE=1
+```
+
+The convergence spec (`e2e/convergence.spec.ts`) drives the real product path on
+the local Supabase stack — OTP sign-in via Inbucket, real booking transaction,
+Realtime invalidation — covering the §11 targets: two-browser update, and
+convergence after disconnect/reconnect. It **skips** (never fails) when the
+stack is absent.
+
+### Invariant suite
+
+The integration suite proves (§17 "Planned invariant tests"): 20 users target one slot →
 exactly one winner; same idempotency key 20× → one booking; same key + different
 payload → 409; lost-response retry replays the stored response; cancel/book
 race keeps the invariant; blocks can't be overbooked; audit + realtime events +
@@ -227,9 +245,12 @@ Conflict — **409**:
 
 **A. Deployment skeleton** `[✓]` · **B. Auth + core booking** `[✓]` ·
 **C. Real-time hard part** `[✓]` — implemented & verified locally ·
-**D. Analytics, onboarding, feedback** `[~]` planned (PostHog DSN absent) ·
-**E. Data-led hardening** `[~]` planned (quota if concentration >30%, restore
-drill, alert tuning).
+**D. Analytics, onboarding, feedback** `[✓]` instrumentation (event taxonomy
+
+- PII whitelist in `lib/analytics.ts`); PostHog DSN placeholder → no events
+  captured yet; in-app feedback form `[~]` ·
+  **E. Data-led hardening** `[~]` planned (quota if concentration >30%, restore
+  drill, alert tuning).
 
 Deliberately excluded from v1: waitlists, multiple labs, recurring
 reservations, email/WhatsApp reminders, QR check-in, team accounts, approval
