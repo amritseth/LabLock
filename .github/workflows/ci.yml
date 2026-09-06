@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # actions/checkout v4.2.2 (pinned by SHA)
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
 
@@ -68,7 +68,7 @@ jobs:
     name: Database checks (local Supabase reset + lint)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       # supabase/setup-cli v1.7.0 (pinned by SHA)
       - uses: supabase/setup-cli@ad077b4817fff9ecc3c1fd20d271ec351e2d7244
