@@ -28,7 +28,7 @@
     "e2e:all": "playwright test"
   },
   "dependencies": {
-    "@sentry/nextjs": "10.73.0",
+    "@sentry/nextjs": "10.74.0",
     "@supabase/ssr": "0.12.5",
     "@supabase/supabase-js": "2.115.0",
     "next": "16.2.10",
